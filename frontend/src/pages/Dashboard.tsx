@@ -49,6 +49,23 @@ export default function Dashboard() {
 
     const recentAlerts = alerts.slice(0, 5); // display up to 5
 
+    const handleGenerateReport = async () => {
+        try {
+            const response = await fetch('http://localhost:8000/api/report/generate');
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Forensic_Intelligence_Report_${Date.now()}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error("Report generation failed:", error);
+            alert("Error connecting to neural core for report generation.");
+        }
+    };
+
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -82,31 +99,43 @@ export default function Dashboard() {
                 {(stats || []).map((stat) => (
                     <motion.div
                         key={stat.name}
-                        whileHover={{ scale: 1.02 }}
-                        className={`glass-panel p-6 relative overflow-hidden group transition-all duration-300 border-b-2 ${
-                            stat.alert ? 'border-b-brand-red shadow-[0_10px_30px_-15px_rgba(255,42,42,0.3)]' : 'border-b-slate-700'
-                        }`}
+                        whileHover={{ scale: 1.02, translateY: -4 }}
+                        className={`glass-panel p-6 relative group overflow-hidden`}
                     >
-                        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                            <stat.icon className={`w-20 h-20 ${stat.color}`} />
+                        {/* Status Accent Line */}
+                        <div className={`absolute top-0 left-0 w-full h-1 bg-gradient-to-r ${
+                            stat.alert ? 'from-brand-red to-brand-orange shadow-[0_4px_12px_rgba(255,42,42,0.4)]' : 'from-brand-cyan to-blue-500'
+                        }`} />
+
+                        <div className="absolute -right-4 -bottom-4 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                            <stat.icon className={`w-32 h-32 ${stat.color}`} />
                         </div>
-                        <div className="relative z-10 flex flex-col h-full justify-between">
-                            <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">{stat.name}</h3>
-                            <div className="mt-4 flex items-baseline justify-between">
+
+                        <div className="relative z-10">
+                            <div className="flex items-center space-x-2 mb-4">
+                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center bg-slate-950 border border-white/5 ${stat.color}`}>
+                                    <stat.icon className="w-4 h-4" />
+                                </div>
+                                <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-none">{stat.name}</h3>
+                            </div>
+
+                            <div className="flex items-end justify-between">
                                 <AnimatePresence mode="wait">
                                     <motion.span
                                         key={stat.value}
-                                        initial={{ opacity: 0, scale: 0.9 }}
-                                        animate={{ opacity: 1, scale: 1 }}
-                                        exit={{ opacity: 0, scale: 1.1 }}
-                                        className={`text-4xl font-black tracking-tighter ${stat.alert ? 'text-white' : 'text-slate-200'}`}
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: -10 }}
+                                        className={`text-4xl font-black tracking-tighter ${stat.alert ? 'text-white' : 'text-slate-100'}`}
                                     >
                                         {stat.value}
                                     </motion.span>
                                 </AnimatePresence>
-                                <div className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-widest flex items-center ${stat.alert ? 'bg-brand-red text-white' : 'bg-slate-800 text-slate-400'}`}>
-                                    {stat.alert ? <AlertTriangle className="w-3 h-3 mr-1" /> : <ShieldCheck className="w-3 h-3 mr-1" />}
-                                    {stat.alert ? 'Warning' : 'Verified'}
+                                <div className={`px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-widest flex items-center border ${
+                                    stat.alert ? 'bg-brand-red/10 border-brand-red/30 text-brand-red' : 'bg-brand-cyan/10 border-brand-cyan/30 text-brand-cyan'
+                                }`}>
+                                    {stat.alert ? <AlertTriangle className="w-2.5 h-2.5 mr-1" /> : <ShieldCheck className="w-2.5 h-2.5 mr-1" />}
+                                    {stat.alert ? 'ALERT' : 'STABLE'}
                                 </div>
                             </div>
                         </div>
@@ -217,7 +246,12 @@ export default function Dashboard() {
                     </div>
 
                     <div className="mt-4">
-                        <button className="w-full py-2.5 bg-slate-100 text-slate-950 hover:bg-white transition-all text-xs font-black uppercase tracking-widest rounded-lg shadow-xl">Generate Forensic Report</button>
+                        <button 
+                            onClick={handleGenerateReport}
+                            className="w-full py-2.5 bg-slate-100 text-slate-950 hover:bg-white transition-all text-xs font-black uppercase tracking-widest rounded-lg shadow-xl"
+                        >
+                            Generate Forensic Report
+                        </button>
                     </div>
                 </div>
             </div>

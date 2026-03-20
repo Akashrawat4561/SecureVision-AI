@@ -47,26 +47,31 @@ export default function Anomaly() {
     };
 
     return (
-        <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-white uppercase">Network Anomaly Inspection</h1>
-                    <p className="text-slate-400 text-sm">Powered by IsolationForest on Real-world Traffic Distributions</p>
+        <div className="space-y-8 max-w-6xl mx-auto">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex flex-col space-y-2">
+                    <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-brand-cyan/10 rounded-xl flex items-center justify-center border border-brand-cyan/20">
+                            <Activity className="w-6 h-6 text-brand-cyan" />
+                        </div>
+                        <h1 className="text-3xl font-black tracking-tighter text-white uppercase italic">Anomaly Inspection <span className="text-brand-cyan not-italic">(IsForest v4)</span></h1>
+                    </div>
+                    <p className="text-slate-500 font-medium tracking-wide">Isolation-based unsupervised trajectory analysis on real-time ingestion streams.</p>
                 </div>
 
-                <div className="flex space-x-2">
+                <div className="flex items-center p-1.5 bg-slate-950/50 rounded-2xl border border-white/5 backdrop-blur-md">
                     <button
                         onClick={() => setViewMode('live')}
-                        className={`flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-all ${viewMode === 'live' ? 'bg-brand-cyan text-slate-950 shadow-[0_0_15px_rgba(0,240,255,0.4)]' : 'bg-slate-800 text-slate-400 hover:text-white'}`}
+                        className={`flex items-center px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'live' ? 'bg-brand-cyan text-slate-950 shadow-[0_0_20px_rgba(0,240,255,0.3)]' : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'}`}
                     >
-                        <Activity className="w-4 h-4 mr-2" /> Live Stream
+                        <Activity className="w-3.5 h-3.5 mr-2" /> Live_Telemetry
                     </button>
                     <button
                         onClick={() => fileInputRef.current?.click()}
-                        className={`flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-all ${viewMode === 'batch' ? 'bg-brand-orange text-slate-950 shadow-[0_0_15px_rgba(255,139,0,0.4)]' : 'bg-slate-800 text-slate-400 hover:text-white'}`}
+                        className={`flex items-center px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'batch' ? 'bg-brand-orange text-slate-950 shadow-[0_0_20px_rgba(255,139,0,0.3)]' : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'}`}
                     >
-                        {uploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
-                        Batch Dataset
+                        {uploading ? <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" /> : <Upload className="w-3.5 h-3.5 mr-2" />}
+                        Batch_Dataset
                     </button>
                     <input
                         type="file"
@@ -78,22 +83,24 @@ export default function Anomaly() {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-6">
-
+            <div className="grid grid-cols-1 gap-8">
                 {viewMode === 'live' ? (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="glass-panel p-6 h-[500px] flex flex-col relative overflow-hidden">
-                        <div className="flex items-center justify-between mb-6">
-                            <h2 className="text-lg font-semibold text-white flex items-center tracking-wider">
-                                <span className="w-1.5 h-6 bg-brand-cyan rounded-full mr-3"></span>
-                                LIVE INGESTION TELEMETRY
+                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass-panel p-8 h-[550px] flex flex-col relative overflow-hidden group">
+                        <div className="absolute inset-0 cyber-grid opacity-10" />
+                        
+                        <div className="flex items-center justify-between mb-10 relative z-10">
+                            <h2 className="text-xs font-black text-slate-400 uppercase tracking-[0.3em] flex items-center">
+                                <span className="w-8 h-px bg-brand-cyan/30 mr-3"></span>
+                                Live Ingestion Telemetry
                             </h2>
-                            <div className="flex items-center space-x-4">
-                                <div className="px-3 py-1 bg-slate-900 border border-slate-800 rounded flex items-center shadow-inner">
-                                    <span className="text-xs font-mono text-slate-400 mr-2">NODES:</span>
-                                    <span className="text-xs font-bold text-brand-cyan">3</span>
+                            <div className="flex items-center space-x-6">
+                                <div className="flex items-center space-x-3 bg-slate-950 px-4 py-2 rounded-xl border border-white/5">
+                                    <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Nodes_Active:</span>
+                                    <span className="text-xs font-black text-brand-cyan italic">03</span>
                                 </div>
-                                <div className={`px-2 py-1 rounded-full text-[10px] font-bold border ${connected ? 'border-green-500/50 text-green-500 bg-green-500/10' : 'border-red-500/50 text-red-500 bg-red-500/10'}`}>
-                                    {connected ? 'REAL-TIME' : 'OFFLINE'}
+                                <div className={`flex items-center space-x-2 px-3 py-1.5 rounded-full text-[9px] font-black border tracking-[0.1em] ${connected ? 'border-green-500/30 text-green-500 bg-green-500/10' : 'border-red-500/30 text-red-500 bg-red-500/10'}`}>
+                                    <div className={`w-1.5 h-1.5 rounded-full ${connected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
+                                    <span>{connected ? 'LINK_ACTIVE' : 'LINK_OFFLINE'}</span>
                                 </div>
                             </div>
                         </div>

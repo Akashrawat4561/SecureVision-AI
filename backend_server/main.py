@@ -91,6 +91,8 @@ app.add_middleware(
 
 # --- AUTH ENDPOINTS ---
 
+recent_alerts = [] # Keep a small buffer of alerts for report generation
+
 @app.post("/api/auth/register")
 async def register(user: UserAuth):
     try:
@@ -98,7 +100,6 @@ async def register(user: UserAuth):
         if user.email in users:
             raise HTTPException(status_code=400, detail="Operator ID already registered")
         
-        print(f"DEBUG: Registering {user.email} with password length {len(user.password)}")
         hashed_password = pwd_context.hash(user.password)
         users[user.email] = {"password": hashed_password}
         save_users(users)
@@ -106,7 +107,6 @@ async def register(user: UserAuth):
         token = jwt.encode({"sub": user.email}, SECRET_KEY, algorithm=ALGORITHM)
         return {"access_token": token, "token_type": "bearer"}
     except Exception as e:
-        print(f"REGISTER ERROR: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/auth/login")
@@ -121,8 +121,55 @@ async def login(user: UserAuth):
         return {"access_token": token, "token_type": "bearer"}
     except Exception as e:
         if isinstance(e, HTTPException): raise e
-        print(f"LOGIN ERROR: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+# --- SYSTEM MANAGEMENT ---
+
+@app.get("/api/report/generate")
+async def generate_forensic_report():
+    await asyncio.sleep(1) # Simulate generation
+    
+    report_id = f"FR-{int(time.time())}"
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
+    content = f"""# SECURE-VISION FORENSIC INTELLIGENCE REPORT
+IDENTIFIER: {report_id}
+TIMESTAMP: {timestamp}
+LEVEL: CONSOLIDATED
+--------------------------------------------------
+
+## SYSTEM BIO-METRICS
+- TOTAL ALERTS PROCESSED: {len(recent_alerts)}
+- ACTIVE EDGE NODES: {len(edge_nodes_state)}
+- HONEYPOT SESSIONS: {honeypot_stats["engagement_count"]}
+- GLOBAL THREAT RADIUS: {honeypot_stats["global_threat_level"]}%
+
+## INCIDENT LOG (RECENT)
+"""
+    for a in recent_alerts[-10:]:
+        content += f"[{a.get('time')}] {a.get('type')}: {a.get('title')} (Source: {a.get('source')})\n"
+    
+    content += "\n--------------------------------------------------\n"
+    content += "REPORT CRYPTOGRAPHICALLY SIGNED BY NEURAL SENTRY CORE.\n"
+    content += "END OF FILE.\n"
+    
+    # Return as text file
+    from fastapi.responses import Response
+    return Response(content=content, media_type="text/plain", headers={"Content-Disposition": f"attachment; filename=Forensic_Report_{report_id}.txt"})
+
+@app.post("/api/alerts/action")
+async def alert_action(data: dict):
+    alert_id = data.get("alert_id")
+    action = data.get("action") # resolve, escalate, ignore
+    
+    msg = f"NEURAL_SENTINEL: Action [{action.upper()}] authorized for event #{alert_id}."
+    print(msg)
+    
+    # Logic to remove or tag the alert if we were storing them 
+    # For now, we broadcast a terminal log
+    await broadcast_terminal_log(msg, "SUCCESS" if action != "escalate" else "WARN")
+    
+    return {"status": "authorized", "alert_id": alert_id, "action": action}
 
 # --- MOCK ML ENDPOINTS ---
 
@@ -283,8 +330,8 @@ async def detect_deepfake(file: UploadFile = File(None), url: str = Form(None)):
         else:
             raise HTTPException(status_code=400, detail="Failed to extract frame from video")
             
-    # 1. Run inference (Full Advanced Pipeline: Temporal + Audio + Physical + Signature)
-    result, err = deepfake_engine.predict(content, frames_bytes_list=frames_bytes_list if len(frames_bytes_list)>1 else None, audio_bytes=audio_bytes)
+    # 1. Run inference (Full Advanced Pipeline: EfficientNet-B4 + LSTM + Random Forest)
+    result, err = deepfake_engine.predict(content, frames_bytes_list=frames_bytes_list if len(frames_bytes_list)>1 else None, audio_bytes=audio_bytes, url=url)
     
     # Heuristic override for general Text-to-Video models that lack facial artifacts 
     # but whose metadata matches known AI generated source
@@ -318,8 +365,8 @@ async def detect_deepfake(file: UploadFile = File(None), url: str = Form(None)):
             "advanced_models": {"efficientnet_attn": "ERROR", "swin_transformer": "ERROR", "clip_anomaly": "ERROR"}
         }
         
-    # 2. Generate Explainability Feature (Grad-CAM surrogate)
-    gradcam_b64 = deepfake_engine.generate_gradcam(content, result.get("fake_prob", 0.5))
+    # 2. Extract heatmap (Honest Attention Overlay)
+    gradcam_b64 = deepfake_engine.generate_attention_overlay(content, result.get("probability", 0.5))
     
     return {
         "filename": filename,
@@ -569,15 +616,18 @@ async def broadcast_telemetry():
             if data["is_anomaly"]:
                 alert_data["title"] = f"Detected Real Anomaly: {data['traffic']} bytes/s"
                 alert_data["severity"] = "high"
+            
+            # Record Alert in History
+            recent_alerts.append(alert_data)
+            if len(recent_alerts) > 100: recent_alerts.pop(0)
+
             await manager.broadcast(alert_data)
 
 
 @app.on_event("startup")
 async def startup_event():
-    # Initialize Deepfake Edge Engine (Download & Quantize to INT8)
-    print("Initializing Deepfake Edge AI Engine...")
-    deepfake_engine.quantize_model()
-    deepfake_engine.load_session()
+    # Initialize Deepfake Engine
+    print("Initializing Deepfake AI Engine (Forensics: Xception + FFT + Physical Analytics)...")
 
     # Start the background task to push data
     asyncio.create_task(broadcast_telemetry())

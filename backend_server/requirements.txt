@@ -15,3 +15,9 @@ redis
 passlib[bcrypt]
 python-jose[cryptography]
 python-dotenv
+mediapipe
+timm
+imagehash
+librosa
+yt-dlp
+moviepy

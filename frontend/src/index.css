@@ -1,27 +1,67 @@
 @import "tailwindcss";
 
 @theme {
+  /* Premium Dark Palette */
   --color-slate-850: #151b2b;
-  --color-slate-950: #0b101e;
-  --color-brand-cyan: #00f0ff;
-  --color-brand-red: #ff2a2a;
-  --color-brand-orange: #ff8b00;
+  --color-slate-900: #0f172a;
+  --color-slate-950: #020617;
+  
+  /* Vibrant Accents (HSL) */
+  --color-brand-cyan: oklch(0.85 0.15 200);
+  --color-brand-red: oklch(0.65 0.25 25);
+  --color-brand-orange: oklch(0.75 0.2 60);
+  --color-brand-purple: oklch(0.65 0.2 280);
+  
+  /* Surface Overlays */
+  --color-glass-white: rgba(255, 255, 255, 0.03);
+  --color-glass-border: rgba(255, 255, 255, 0.08);
+
+  /* Animation Overrides */
+  --animate-pulse-slow: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
 @layer base {
+  :root {
+    --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  }
+
   body {
-    @apply bg-slate-950 text-slate-300;
+    @apply bg-slate-950 text-slate-300 font-sans selection:bg-brand-cyan/30;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3, h4, .font-title {
+    @apply font-black tracking-tight text-white uppercase italic;
   }
 }
 
 .glass-panel {
-  @apply bg-slate-850/60 backdrop-blur-md border border-slate-700/50 rounded-xl shadow-lg shadow-black/20;
+  @apply bg-slate-900/40 backdrop-blur-xl border border-glass-border rounded-2xl shadow-[0_8px_32px_0_rgba(0,0,0,0.4)];
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-panel:hover {
+  @apply border-white/20 shadow-[0_12px_48px_0_rgba(0,0,0,0.5)];
+}
+
+.cyber-grid {
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+.mesh-gradient {
+  background: radial-gradient(at 100% 0%, rgba(0, 240, 250, 0.05) 0px, transparent 50%),
+              radial-gradient(at 0% 100%, rgba(255, 130, 0, 0.05) 0px, transparent 50%),
+              radial-gradient(at 50% 50%, rgba(100, 0, 255, 0.02) 0px, transparent 50%);
 }
 
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
@@ -29,10 +69,10 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #334155;
-  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: var(--color-brand-cyan);
 }

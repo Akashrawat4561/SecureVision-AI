@@ -1,12 +1,22 @@
-import { Bug, Target, Activity, CodeSquare, Hexagon, Share2, ShieldAlert } from 'lucide-react';
+import { Bug, Target, Activity, CodeSquare, Hexagon, Share2, ShieldAlert, Loader2, CheckCircle2, XCircle, FileText } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useWebSocket } from '../context/WebSocketContext';
 import { useState, useEffect } from 'react';
 import ThreatMap from '../components/ThreatMap';
 
+type ActionFeedback = {
+    tone: 'success' | 'error' | 'info';
+    message: string;
+};
+
+const env = (import.meta as ImportMeta & { env?: Record<string, string> }).env;
+const API_BASE = env?.VITE_API_BACKEND?.replace(/\/$/, '') || 'http://localhost:8000/api';
+
 export default function Honeypot() {
     const { data, connected } = useWebSocket();
     const [encounters, setEncounters] = useState<any[]>([]);
+    const [pendingAction, setPendingAction] = useState<string | null>(null);
+    const [feedback, setFeedback] = useState<ActionFeedback | null>(null);
 
     // Process real-time events from WebSockets
     useEffect(() => {
@@ -36,19 +46,84 @@ export default function Honeypot() {
         label: e.attack.type
     }));
 
+    const showFeedback = (tone: ActionFeedback['tone'], message: string) => {
+        setFeedback({ tone, message });
+        window.setTimeout(() => setFeedback(null), 3500);
+    };
+
+    const shareIntel = async (mode: string, intelType: string, source: string, successMessage: string) => {
+        setPendingAction(mode);
+        try {
+            const response = await fetch(`${API_BASE}/intel/share`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    hash: `0x${Math.random().toString(16).slice(2, 10)}`,
+                    type: intelType,
+                    source,
+                }),
+            });
+
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                throw new Error((data as { detail?: string }).detail || 'Intel share failed.');
+            }
+
+            showFeedback('success', successMessage);
+        } catch (error) {
+            showFeedback('error', error instanceof Error ? error.message : 'Intel share failed.');
+            console.error('Intel share failed:', error);
+        } finally {
+            setPendingAction(null);
+        }
+    };
+
+    const generateHoneypotReport = async () => {
+        setPendingAction('report');
+        try {
+            const response = await fetch(`${API_BASE}/report/generate`);
+            if (!response.ok) {
+                throw new Error('Failed to generate report.');
+            }
+
+            const reportBlob = await response.blob();
+            const fileUrl = URL.createObjectURL(reportBlob);
+            const link = document.createElement('a');
+            link.href = fileUrl;
+            link.download = `honeypot_report_${Date.now()}.txt`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(fileUrl);
+
+            showFeedback('success', 'Honeypot report generated and downloaded.');
+        } catch (error) {
+            showFeedback('error', error instanceof Error ? error.message : 'Failed to generate report.');
+            console.error('Report generation failed:', error);
+        } finally {
+            setPendingAction(null);
+        }
+    };
+
     return (
-        <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-white uppercase flex items-center">
-                        <Bug className="text-brand-orange mr-3 w-8 h-8" />
-                        Honeypot Decoy Network
-                    </h1>
-                    <p className="text-slate-400 text-xs mt-1 font-mono uppercase tracking-widest">Global Threat Intelligence Deception Node</p>
+        <div className="space-y-8 max-w-6xl mx-auto">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex flex-col space-y-2">
+                    <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-brand-orange/10 rounded-xl flex items-center justify-center border border-brand-orange/20">
+                            <Bug className="w-6 h-6 text-brand-orange" />
+                        </div>
+                        <h1 className="text-3xl font-black tracking-tighter text-white uppercase italic">Decoy Network <span className="text-brand-orange not-italic">(Honeypot v2)</span></h1>
+                    </div>
+                    <p className="text-slate-500 font-medium tracking-wide">Global threat intelligence deception nodes for high-interaction adversary profiling.</p>
                 </div>
-                <div className="flex items-center space-x-2 bg-slate-800/50 py-1.5 px-3 rounded-full border border-slate-700">
-                    <span className="text-xs text-brand-orange animate-pulse font-bold tracking-wider uppercase">Active Decoys Deployed</span>
-                    <span className="text-brand-orange font-mono bg-brand-orange/10 px-2 py-0.5 rounded border border-brand-orange/20">3</span>
+
+                <div className="flex items-center space-x-4 bg-slate-950/50 py-2.5 px-5 rounded-2xl border border-white/5 backdrop-blur-md">
+                    <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest leading-none">Status:</span>
+                    <div className="flex items-center space-x-2">
+                        <div className="w-2 h-2 rounded-full bg-brand-orange animate-pulse shadow-[0_0_10px_rgba(255,139,0,0.5)]" />
+                        <span className="text-xs font-black text-brand-orange uppercase italic tracking-wider">3_DECOYS_DEPLOYED</span>
+                    </div>
                 </div>
             </div>
 
@@ -157,10 +232,45 @@ export default function Honeypot() {
                         </div>
                     </div>
 
-                    <div className="flex-1 flex items-end">
-                        <button className="group w-full py-4 bg-gradient-to-r from-brand-orange/30 to-brand-red/30 hover:from-brand-orange/40 hover:to-brand-red/40 text-white border border-brand-orange/30 transition-all uppercase tracking-[0.2em] text-[10px] font-black rounded-xl shadow-[0_0_20px_rgba(255,139,0,0.15)] flex justify-center items-center">
-                            <Share2 className="w-4 h-4 mr-2 group-hover:rotate-12 transition-transform" /> Publish Intelligence
+                    <div className="flex-1 flex flex-col justify-end space-y-3">
+                        {feedback && (
+                            <div className={`rounded-xl border px-3 py-2 text-[10px] uppercase font-black tracking-widest flex items-center ${feedback.tone === 'success' ? 'border-brand-cyan/30 bg-brand-cyan/10 text-brand-cyan' : feedback.tone === 'error' ? 'border-brand-red/30 bg-brand-red/10 text-brand-red' : 'border-brand-orange/30 bg-brand-orange/10 text-brand-orange'}`}>
+                                {feedback.tone === 'success' ? <CheckCircle2 className="w-3.5 h-3.5 mr-2" /> : feedback.tone === 'error' ? <XCircle className="w-3.5 h-3.5 mr-2" /> : <Share2 className="w-3.5 h-3.5 mr-2" />}
+                                {feedback.message}
+                            </div>
+                        )}
+
+                        <button
+                            disabled={pendingAction === 'publish'}
+                            onClick={() => void shareIntel('publish', 'POLISHED_SIGNATURE', 'SENTINEL_DASHBOARD', 'Intelligence package published successfully.')}
+                            className="group w-full py-4 bg-gradient-to-r from-brand-orange/30 to-brand-red/30 hover:from-brand-orange/40 hover:to-brand-red/40 text-white border border-brand-orange/30 transition-all uppercase tracking-[0.2em] text-[10px] font-black rounded-xl shadow-[0_0_20px_rgba(255,139,0,0.15)] flex justify-center items-center disabled:opacity-40"
+                        >
+                            {pendingAction === 'publish' ? (
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            ) : (
+                                <Share2 className="w-4 h-4 mr-2 group-hover:rotate-12 transition-transform" />
+                            )}
+                            Publish Intelligence
                         </button>
+
+                        <div className="grid grid-cols-2 gap-3">
+                            <button
+                                disabled={pendingAction === 'sync'}
+                                onClick={() => void shareIntel('sync', 'DECOY_FEED', 'pi-honeypot-node', 'Decoy signature feed synced.')}
+                                className="py-3 bg-slate-900 border border-white/10 text-slate-200 hover:border-brand-orange/30 hover:text-white transition-all uppercase tracking-widest text-[9px] font-black rounded-xl disabled:opacity-40 flex justify-center items-center"
+                            >
+                                {pendingAction === 'sync' ? <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" /> : <ShieldAlert className="w-3.5 h-3.5 mr-2" />}
+                                Sync Feed
+                            </button>
+                            <button
+                                disabled={pendingAction === 'report'}
+                                onClick={generateHoneypotReport}
+                                className="py-3 bg-brand-cyan/10 border border-brand-cyan/20 text-brand-cyan hover:bg-brand-cyan/20 transition-all uppercase tracking-widest text-[9px] font-black rounded-xl disabled:opacity-40 flex justify-center items-center"
+                            >
+                                {pendingAction === 'report' ? <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" /> : <FileText className="w-3.5 h-3.5 mr-2" />}
+                                Report
+                            </button>
+                        </div>
                     </div>
                 </div>
 
